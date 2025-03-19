@@ -12,6 +12,13 @@ def format_crafting_recipe(context: Context, buffer: List[str], identifier: str)
 
 
 def format_crafting_recipe_from_data(context: Context, buffer: List[str], identifier: str, data: Any):
+    # Check for neoforge conditions
+    if 'neoforge:conditions' in data:
+        conditions = data['neoforge:conditions']   
+        for condition in conditions:
+            if condition['type'] == 'neoforge:false':
+                return # Skip anything with a false condition. This might be a bad idea but I don't really know what else to do.
+
     recipe_type = data['type']
 
     if recipe_type == 'minecraft:crafting_shaped':

@@ -31,7 +31,7 @@ def format_misc_recipe(context: Context, buffer: List[str], identifier: str):
         else:
             util.error('Unrecognized loom recipe format: %s' % repr(data))
     elif recipe_type == 'tfc:anvil':
-        format_misc_recipe_from_data(context, buffer, identifier, data, ingredient=data['input'])
+        format_misc_recipe_from_data(context, buffer, identifier, data, ingredient=data['ingredient'])
         tooltip = get_tier(context, data['tier'])
         buffer.append("""
         <div style="text-align: center;" class="minecraft-text minecraft-gray">

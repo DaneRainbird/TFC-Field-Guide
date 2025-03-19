@@ -6,7 +6,7 @@ from PIL import Image
 import json
 import util
 import versions
-
+import os
 
 class Loader:
 
@@ -67,10 +67,25 @@ class Loader:
     
     def load_resource(self, path: str, resource_type: str, resource_root: str, resource_suffix: str, reader, source: str = None) -> Any:
         path = util.resource_location(path)
+
+        print("DANEBUG - Currently in load_resource, requesting to load resource located at  " + path)
+
         domain, path = path.split(':')
+        
+        # If domain is 'c', replace it with 'tfc'
+        if domain == 'c':
+            print('DANEBUG - Currently in load_resource, found an item with domain \'c\', currently just passing for now.')
+            pass
+            # domain = 'tfc'
+        
         path = util.path_join(resource_root, domain, resource_type, path)
         path = suffix(path, resource_suffix)
 
+        # Fix known issues (e.g. 'recipe' vs 'recipes')
+        if 'tags' in path:
+            path = path.replace('blocks', 'block') 
+            path = path.replace('items', 'item')
+        
         for key, serves, loader in self.loaders:
             if (source is None or key == source) and domain in serves:  # source only loads from a specific loader domain
                 try:
@@ -82,16 +97,58 @@ class Loader:
         util.error('Missing Resource \'%s\'' % path)  # Aggregate errors
     
     def load_from_tfc(self, path: str, reader):
-        try:
-            path = util.path_join(self.tfc_dir, 'src/main/resources', path)
-            if path.endswith('.png'):
-                with open(path, 'rb') as f:
-                    return reader(f)
-            else:
-                with open(path, 'r', encoding='utf-8') as f:
-                    return reader(f)
-        except OSError:
-            util.error('Reading \'%s\' from \'tfc\'' % path)
+        
+        print("DANEBUG - Currently in load_from_tfc, requesting to load resource located at ", path)
+
+        # Normalize path separators to the system's format
+        path = os.path.normpath(path)
+        
+        # Check both possible paths (not sure when generated became a thing?)
+        possible_paths = [
+            util.path_join(self.tfc_dir, 'src/main/resources', path),
+            util.path_join(self.tfc_dir, 'src/generated/resources', path)
+        ]
+        
+        # Handle recipe/recipes difference
+        if 'recipes' in path:
+            alt_path = path.replace('recipes', 'recipe')
+            possible_paths.append(util.path_join(self.tfc_dir, 'src/main/resources', alt_path))
+            possible_paths.append(util.path_join(self.tfc_dir, 'src/generated/resources', alt_path))
+        
+        if 'tags' in path:
+            alt_path = path.replace('blocks', 'block') 
+            alt_path = alt_path.replace('items', 'item')
+            possible_paths.append(util.path_join(self.tfc_dir, 'src/main/resources', alt_path))
+            possible_paths.append(util.path_join(self.tfc_dir, 'src/generated/resources', alt_path))
+        
+        # # Handle 'data\c' or 'data/c' paths - this should be 'tfc' - I thinK?
+        # if f'data{os.path.sep}c' in path or 'data/c' in path:
+        #     alt_path = path.replace(f'data{os.path.sep}c', f'data{os.path.sep}tfc')
+        #     alt_path = alt_path.replace('data/c', 'data/tfc')
+
+        #     possible_paths.append(util.path_join(self.tfc_dir, 'src/main/resources', alt_path))
+        #     possible_paths.append(util.path_join(self.tfc_dir, 'src/generated/resources', alt_path))
+
+        exceptions = []
+        for p in possible_paths:
+
+            if 'copper' in p:
+                print('DANEBUG - Currently in load_from_tfc, copper (testing resource) located, trying path:', p)
+
+            try:
+                if p.endswith('.png'):
+                    with open(p, 'rb') as f:
+                        print('DANEBUG - Currently in load_from_tfc, successfully located png image at path:', p)
+                        return reader(f)
+                else:
+                    with open(p, 'r', encoding='utf-8') as f:
+                        print('DANEBUG - Currently in load_from_tfc, successfully located other file (likely JSON?) at path:', p)
+                        return reader(f)
+            except OSError as e:
+                exceptions.append(str(e))
+                continue
+        
+        util.error('Reading \'%s\' from \'tfc\'. Tried paths: %s' % (path, ', '.join(possible_paths)))
 
 
 def suffix(path: str, suffix_with: str) -> str:

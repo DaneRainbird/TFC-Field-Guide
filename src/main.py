@@ -207,6 +207,8 @@ def parse_entry(context: Context, entry_dir: str, entry_file: str, owner_id: str
 
     for page in data['pages']:
         try:
+            if 'recipe' in page and page['recipe'] == "tfc:crafting/metal/pickaxe/copper":
+                print(page)
             parse_page(context, entry_id, entry.buffer, page)
         except InternalError as e:
             e.warning()
@@ -355,7 +357,7 @@ def parse_page(context: Context, entry_id: str, buffer: List[str], data: Any):
             misc_recipe.format_misc_recipe(context, buffer, data['recipe'])
             context.recipes_passed += 1
         except InternalError as e:
-            e.prefix('misc_recipe \'%s\'' % page_type).warning(True)
+            e.prefix('misc_recipeDANEBUG \'%s\'' % page_type).warning(True)
 
             # Fallback
             context.format_recipe(buffer, data)

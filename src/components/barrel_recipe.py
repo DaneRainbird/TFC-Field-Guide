@@ -22,18 +22,36 @@ def format_barrel_recipe_from_data(context: Context, buffer: List[str], data: An
     input_fluid_div = input_item_div = output_fluid_div = output_item_div = duration = """"""
 
     if 'input_item' in data:
-        in_path, in_name = crafting_recipe.format_ingredient(context, data['input_item']['ingredient'])
-        in_count = data['input_item']['count'] if 'count' in data['input_item'] else 1
-        input_item_div = make_icon(in_name, in_path, 1, crafting_recipe.format_count(in_count))
+        input_item = data['input_item']
+        if 'children' in input_item:
+            input_item_divs = []
+            for child in input_item['children']:
+                child_path, child_name = crafting_recipe.format_ingredient(context, child)
+                input_item_divs.append(make_icon(child_name, child_path, 1))
+            input_item_div = ''.join(input_item_divs)
+        else:
+            ingredient = input_item.get('ingredient', {})
+            if 'tag' in ingredient:
+                in_path, in_name = crafting_recipe.format_ingredient(context, {'tag': ingredient['tag']})
+            elif 'item' in ingredient:
+                in_path, in_name = crafting_recipe.format_ingredient(context, {'item': ingredient['item']})
+            else:
+                in_path, in_name = crafting_recipe.format_ingredient(context, ingredient)
+            in_count = input_item.get('count', 1)
+            input_item_div = make_icon(in_name, in_path, 1, crafting_recipe.format_count(in_count))
+
     if 'output_item' in data:
         out_path, out_name, out_count = crafting_recipe.format_item_stack(context, data['output_item'])
         output_item_div = make_icon(out_name, out_path, 3, crafting_recipe.format_count(out_count))
+
     if 'input_fluid' in data:
         f_in_path, f_in_name = fluid_loader.get_fluid_image(context, data['input_fluid'])
         input_fluid_div = make_icon(f_in_name, f_in_path, 2)
+
     if 'output_fluid' in data:
         f_out_path, f_out_name = fluid_loader.get_fluid_image(context, data['output_fluid'])
         output_fluid_div = make_icon(f_out_name, f_out_path, 4)
+
     if 'duration' in data:
         duration = f"""
         <div style="text-align: center;" class="minecraft-text minecraft-gray">
